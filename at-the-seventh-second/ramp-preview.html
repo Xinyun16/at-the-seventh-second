@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>All Ramps Preview</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    body {
+      display: block;
+    }
+
+    #stage {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <div id="stage"></div>
+  
+  <!-- 必须先加载定义了基类的 radial-ramp-core 和 linear-ramp-core -->
+  <script src="./ramps/radial-ramp-core.js"></script>
+  <script src="./ramps/linear-ramp-core.js"></script>
+  
+  <!-- 加载其余的 ramp 变体 -->
+  <script src="./ramps/radial-ramp-00.js"></script>
+  <script src="./ramps/radial-ramp-02.js"></script>
+  <script src="./ramps/radial-ramp-03.js"></script>
+  <script src="./ramps/radial-ramp-04.js"></script>
+  <script src="./ramps/linear-ramp-06.js"></script>
+  <script src="./ramps/linear-ramp-07.js"></script>
+  <script src="./ramps/linear-ramp-08.js"></script>
+  <script src="./ramps/radial-ramp-09.js"></script>
+  <script src="./ramps/radial-ramp-10.js"></script>
+  <script src="./ramps/radial-ramp-11.js"></script>
+  
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      const RAMP_GLOBAL_SCALE = 0.5; // 缩小以在屏幕上放下12个
+      const rampClasses = [
+        window.RampSvg0, window.RampSvg1, window.RampSvg2, window.RampSvg3,
+        window.RampSvg4, window.RampSvg5, window.RampSvg6, window.RampSvg7,
+        window.RampSvg8, window.RampSvg9, window.RampSvg10, window.RampSvg11
+      ];
+
+      const stage = document.getElementById("stage");
+      const rampInstances = [];
+      let resizeFrameId = null;
+
+      function getGridPositions() {
+        const cols = 4;
+        const rows = 3;
+        const positions = [];
+
+        for (let r = 0; r < rows; r += 1) {
+          for (let c = 0; c < cols; c += 1) {
+            positions.push({
+              x: window.innerWidth * (c + 0.5) / cols,
+              y: window.innerHeight * (r + 0.5) / rows
+            });
+          }
+        }
+
+        return positions;
+      }
+
+      function clearMountedRamps() {
+        while (rampInstances.length > 0) {
+          const ramp = rampInstances.pop();
+          if (ramp && typeof ramp.unmount === "function") {
+            ramp.unmount();
+          }
+        }
+      }
+
+      function mountRamps() {
+        if (!stage) {
+          console.error("Missing #stage mount target.");
+          return;
+        }
+
+        const positions = getGridPositions();
+        clearMountedRamps();
+
+        rampClasses.forEach((RampClass, index) => {
+          if (typeof RampClass !== "function") {
+            console.error(`RampClass at index ${index} is not loaded correctly.`);
+            return;
+          }
+
+          const position = positions[index];
+          if (!position) {
+            return;
+          }
+
+          try {
+            const ramp = new RampClass({
+              scale: 0.24 * RAMP_GLOBAL_SCALE,
+              centerX: position.x,
+              centerY: position.y,
+            });
+
+            ramp.mount(stage);
+            rampInstances.push(ramp);
+          } catch (error) {
+            console.error(`Failed to mount ramp ${index}.`, error);
+          }
+        });
+      }
+
+      window.addEventListener("resize", () => {
+        if (resizeFrameId !== null) {
+          window.cancelAnimationFrame(resizeFrameId);
+        }
+
+        resizeFrameId = window.requestAnimationFrame(() => {
+          resizeFrameId = null;
+          mountRamps();
+        });
+      });
+
+      mountRamps();
+    });
+  </script>
+</body>
+</html>
